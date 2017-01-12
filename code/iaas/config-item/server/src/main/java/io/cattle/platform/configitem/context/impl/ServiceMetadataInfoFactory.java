@@ -350,9 +350,9 @@ public class ServiceMetadataInfoFactory extends AbstractAgentBaseContextFactory 
             Map<String, SelfMetaData> selfMD, Version version,
             List<String> ipsOnHost, long hostId) {
         for (ContainerMetaData containerMD : containersMD) {
-            if (!ipsOnHost.contains(containerMD.getPrimary_ip())) {
+            /*if (!ipsOnHost.contains(containerMD.getPrimary_ip())) {
                 continue;
-            }
+            }*/
             ServiceMetaData svcData = null;
             StackMetaData stackData = null;
             if (containerMD.getServiceId() != null) {

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+
+#mvn package -DskipTests
+
+cp -f code/packaging/app/target/cattle-app-0.5.0-SNAPSHOT*war cattle.war
+
+docker build -f Dockerfile.build -t llparse/rancher-server:master .
+#-v $(pwd):/source/cattle
+
+docker run -d -p 8080:8080 -p 1044:1044 --name=rancher-server --restart=unless-stopped -e JAVA_OPTS="-Xrunjdwp:server=y,transport=dt_socket,address=1044,suspend=n" llparse/rancher-server:master
+

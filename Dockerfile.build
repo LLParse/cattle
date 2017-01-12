@@ -1,0 +1,6 @@
+FROM rancher/server:master
+
+COPY ./resources/content/cattle-global.properties /
+COPY ./cattle.war /
+COPY ./cattle.sh /usr/share/cattle/
+
