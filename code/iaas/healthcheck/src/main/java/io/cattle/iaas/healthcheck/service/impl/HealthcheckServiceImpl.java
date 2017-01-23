@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -259,17 +260,33 @@ public class HealthcheckServiceImpl implements HealthcheckService {
                 HealthcheckInstance.class, healthInstance.getId());
         List<? extends Host> availableActiveHosts = allocatorDao.getActiveHosts(healthInstance.getAccountId());
         
+        // skip non-linux hosts
+        Iterator<? extends Host> it = availableActiveHosts.iterator();
+        while (it.hasNext()) {
+            Host host = it.next();
+            Map<String, Object> data = (Map<String, Object>) host.getData();
+            if (data.containsKey("fields")) {
+                Map<String, Object> fields = (Map<String, Object>) data.get("fields");
+                if (fields.containsKey("labels")) {
+                    Map<String, String> labels =(Map<String, String>) fields.get("labels");
+                    if (labels.containsKey("io.rancher.host.os") && !labels.get("io.rancher.host.os").equals("linux")) {
+                           it.remove();
+                    }
+                }
+            }
+        }
+        
         List<Long> availableActiveHostIds = (List<Long>) CollectionUtils.collect(availableActiveHosts,
                 TransformerUtils.invokerTransformer("getId"));
         List<Long> allocatedActiveHostIds = (List<Long>) CollectionUtils.collect(existingHostMaps,
                 TransformerUtils.invokerTransformer("getHostId"));
 
         // skip the host that if not active (being removed, reconnecting, etc)
-        Iterator<Long> it = allocatedActiveHostIds.iterator();
-        while (it.hasNext()) {
-            Long allocatedHostId = it.next();
+        Iterator<Long> it2 = allocatedActiveHostIds.iterator();
+        while (it2.hasNext()) {
+            Long allocatedHostId = it2.next();
             if (!availableActiveHostIds.contains(allocatedHostId)) {
-                it.remove();
+                it2.remove();
             }
         }
 
