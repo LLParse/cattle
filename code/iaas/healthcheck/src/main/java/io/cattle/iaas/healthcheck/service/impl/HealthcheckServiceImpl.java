@@ -3,6 +3,7 @@ package io.cattle.iaas.healthcheck.service.impl;
 import static io.cattle.platform.core.constants.HealthcheckConstants.*;
 import static io.cattle.platform.core.model.tables.HealthcheckInstanceHostMapTable.*;
 import static io.cattle.platform.core.model.tables.HealthcheckInstanceTable.*;
+import static io.cattle.platform.core.util.SystemLabels.*;
 import io.cattle.iaas.healthcheck.service.HealthcheckService;
 import io.cattle.platform.allocator.dao.AllocatorDao;
 import io.cattle.platform.core.constants.CommonStatesConstants;
@@ -260,7 +261,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
                 HealthcheckInstance.class, healthInstance.getId());
         List<? extends Host> availableActiveHosts = allocatorDao.getActiveHosts(healthInstance.getAccountId());
         
-        // skip non-linux hosts
+        // skip hosts labeled accordingly
         Iterator<? extends Host> it = availableActiveHosts.iterator();
         while (it.hasNext()) {
             Host host = it.next();
@@ -269,7 +270,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
                 Map<String, Object> fields = (Map<String, Object>) data.get("fields");
                 if (fields.containsKey("labels")) {
                     Map<String, String> labels =(Map<String, String>) fields.get("labels");
-                    if (labels.containsKey("io.rancher.host.os") && !labels.get("io.rancher.host.os").equals("linux")) {
+                    if (labels.containsKey(LABEL_HEALTHCHECK_SKIP) && !labels.get(LABEL_HEALTHCHECK_SKIP).equals("true")) {
                            it.remove();
                     }
                 }
