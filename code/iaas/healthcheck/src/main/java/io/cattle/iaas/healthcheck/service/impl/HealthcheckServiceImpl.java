@@ -3,6 +3,7 @@ package io.cattle.iaas.healthcheck.service.impl;
 import static io.cattle.platform.core.constants.HealthcheckConstants.*;
 import static io.cattle.platform.core.model.tables.HealthcheckInstanceHostMapTable.*;
 import static io.cattle.platform.core.model.tables.HealthcheckInstanceTable.*;
+import static io.cattle.platform.core.util.SystemLabels.*;
 import io.cattle.iaas.healthcheck.service.HealthcheckService;
 import io.cattle.platform.allocator.dao.AllocatorDao;
 import io.cattle.platform.core.constants.CommonStatesConstants;
@@ -21,6 +22,7 @@ import io.cattle.platform.lock.LockManager;
 import io.cattle.platform.object.ObjectManager;
 import io.cattle.platform.object.meta.ObjectMetaDataManager;
 import io.cattle.platform.object.process.ObjectProcessManager;
+import io.cattle.platform.util.type.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +32,6 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.TransformerUtils;
 
 public class HealthcheckServiceImpl implements HealthcheckService {
@@ -260,21 +261,18 @@ public class HealthcheckServiceImpl implements HealthcheckService {
                 HealthcheckInstance.class, healthInstance.getId());
         List<? extends Host> availableActiveHosts = allocatorDao.getActiveHosts(healthInstance.getAccountId());
         
-        // skip non-linux hosts
+        // skip hosts labeled accordingly
         Iterator<? extends Host> it = availableActiveHosts.iterator();
         while (it.hasNext()) {
-            Host host = it.next();
-            Map<String, Object> data = (Map<String, Object>) host.getData();
-            Map<String, Object> fields = (Map<String, Object>) data.get("fields");
-            Map<String, String> labels =(Map<String, String>) fields.get("labels");
-            if (labels.containsKey("io.rancher.host.os") && !labels.get("io.rancher.host.os").equals("linux")) {
-                   it.remove();
+            String skip = (String) CollectionUtils.getNestedValue(it.next().getData(), "fields", "labels", LABEL_HEALTHCHECK_SKIP);
+            if (skip != null && "true".equals(skip)) {
+               it.remove();
             }
         }
         
-        List<Long> availableActiveHostIds = (List<Long>) CollectionUtils.collect(availableActiveHosts,
+        List<Long> availableActiveHostIds = (List<Long>) org.apache.commons.collections.CollectionUtils.collect(availableActiveHosts,
                 TransformerUtils.invokerTransformer("getId"));
-        List<Long> allocatedActiveHostIds = (List<Long>) CollectionUtils.collect(existingHostMaps,
+        List<Long> allocatedActiveHostIds = (List<Long>) org.apache.commons.collections.CollectionUtils.collect(existingHostMaps,
                 TransformerUtils.invokerTransformer("getHostId"));
 
         // skip the host that if not active (being removed, reconnecting, etc)
